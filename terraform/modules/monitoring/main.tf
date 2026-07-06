@@ -36,11 +36,11 @@ resource "azurerm_monitor_action_group" "oncall" {
 # for every failed health check. Evaluated every 5 minutes over a 10-minute
 # window, so a single blip won't page anyone but a real outage will.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "failed_checks" {
-  name                = "alert-${var.prefix}-failed-checks"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  scopes              = [azurerm_application_insights.main.id]
-  severity            = 2
+  name                 = "alert-${var.prefix}-failed-checks"
+  resource_group_name  = var.resource_group_name
+  location             = var.location
+  scopes               = [azurerm_application_insights.main.id]
+  severity             = 2
   evaluation_frequency = "PT5M"
   window_duration      = "PT10M"
   tags                 = var.tags
