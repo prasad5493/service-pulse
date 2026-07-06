@@ -14,6 +14,14 @@ resource "azurerm_storage_account" "func" {
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
   tags                            = local.tags
+
+  # Deny public network access by default. Azure's own services (like the
+  # Function App runtime that owns this account) are allowed through via
+  # the AzureServices bypass, everyone else is refused.
+  network_rules {
+    default_action = "Deny"
+    bypass         = ["AzureServices"]
+  }
 }
 
 # Consumption plan: we only pay while the checks are actually running,
