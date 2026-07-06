@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Pulse — a small uptime monitor on Azure</title>
+<meta name="description" content="A simple tool that checks if websites are up, built by Prasad Bhor using Azure, Terraform and GitHub Actions.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f5f8f6;
+    --card: #ffffff;
+    --ink: #13211d;
+    --muted: #5b6e67;
+    --line: #d6e0dc;
+    --green: #0d8a6a;
+    --green-soft: #e2f2ec;
+    --amber: #c07a1c;
+    --red: #c24545;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  a { color: var(--green); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 2px; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- header ---------- */
+  header {
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+  }
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0;
+  }
+  .brand { font-family: var(--mono); font-weight: 500; font-size: 15px; letter-spacing: .02em; color: var(--ink); text-decoration: none; }
+  .brand .dot { color: var(--green); }
+  .nav a.repo {
+    font-family: var(--mono); font-size: 13px; text-decoration: none;
+    border: 1px solid var(--line); padding: 7px 14px; border-radius: 6px; color: var(--ink);
+  }
+  .nav a.repo:hover { border-color: var(--green); color: var(--green); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 72px 0 56px; background: var(--card); }
+  .eyebrow {
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+  }
+  .eyebrow::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px var(--green-soft);
+  }
+  h1 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700; font-size: clamp(2.4rem, 6vw, 4rem);
+    line-height: 1.05; letter-spacing: -0.02em;
+    max-width: 14ch;
+  }
+  .hero p.lede { max-width: 54ch; color: var(--muted); font-size: 1.1rem; margin-top: 20px; }
+  .byline {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700; font-size: 1.4rem; color: var(--green);
+    margin-top: 32px;
+  }
+  .byline span { color: var(--muted); font-family: var(--mono); font-weight: 400; font-size: 0.95rem; display: block; margin-bottom: 4px; }
+  .divider { height: 1px; background: var(--line); }
+
+  /* ---------- sections ---------- */
+  section { padding: 64px 0; }
+  section + section { border-top: 1px solid var(--line); }
+  h2 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700; font-size: 1.7rem; letter-spacing: -0.01em;
+    margin-bottom: 12px;
+  }
+  .section-note { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-bottom: 32px; }
+  p + p { margin-top: 14px; }
+
+  /* live status */
+  .status-list { display: grid; gap: 10px; margin-top: 8px; }
+  .status-row {
+    display: grid; grid-template-columns: 16px 1fr auto auto; gap: 14px;
+    align-items: center;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 18px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  .dot.up { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+  .dot.down { background: var(--red); box-shadow: 0 0 0 3px #fbe4e4; }
+  .status-name { font-weight: 600; font-size: 0.98rem; }
+  .status-name small { display: block; font-family: var(--mono); font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .status-latency { font-family: var(--mono); font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .status-label { font-family: var(--mono); font-size: 12.5px; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .status-label.up { background: var(--green-soft); color: var(--green); }
+  .status-label.down { background: #fbe4e4; color: var(--red); }
+  .status-label.pending { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+  .status-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
+  .status-footer .note { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+  #recheck {
+    font-family: var(--mono); font-size: 13px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 8px 16px; border-radius: 6px;
+  }
+  #recheck:hover { border-color: var(--green); color: var(--green); }
+  #recheck:disabled { opacity: 0.5; cursor: default; }
+
+  footer {
+    border-top: 1px solid var(--line); padding: 40px 0 56px;
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+
+  @media (max-width: 640px) {
+    .status-row { grid-template-columns: 12px 1fr; row-gap: 8px; }
+    .status-latency, .status-label { grid-column: 2; }
+    section { padding: 48px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#">service<span class="dot">·</span>pulse</a>
+    <!-- Update this link to your repository -->
+    <a class="repo" href="https://github.com/your-username/service-pulse">view source →</a>
+  </div>
+  <div class="wrap hero">
+    <p class="eyebrow">checks every 5 minutes · built on azure</p>
+    <h1>A simple tool that watches websites for you.</h1>
+    <p class="lede">Service Pulse checks a list of websites on a schedule, notes whether each one is up, and sends an alert the moment something goes wrong.</p>
+    <p class="byline"><span>Built and maintained by</span>Prasad Bhor</p>
+  </div>
+</header>
+<div class="divider"></div>
+
+<main>
+  <section id="what" class="wrap">
+    <h2>What it does</h2>
+    <p class="section-note">in plain terms</p>
+    <p>Every five minutes, a small program visits each website on a list and asks a simple question: are you working? It notes whether the site responded properly and how long it took.</p>
+    <p>If a website stops responding properly, an email goes out straight away — so nobody has to sit and watch a screen waiting for something to break. There's also an optional step where a failing check can automatically create a support ticket in Salesforce, so the issue gets tracked without anyone lifting a finger.</p>
+  </section>
+
+  <section id="live" class="wrap">
+    <h2>Live status</h2>
+    <p class="section-note">checked from your browser, right now</p>
+    <div class="status-list" id="statusList">
+      <div class="status-row">
+        <span class="dot"></span>
+        <span class="status-name">Loading…</span>
+        <span class="status-latency"></span>
+        <span class="status-label pending">checking</span>
+      </div>
+    </div>
+    <div class="status-footer">
+      <span class="note" id="lastChecked">running checks…</span>
+      <button id="recheck">Recheck now</button>
+    </div>
+  </section>
+
+
+</main>
+
+<footer>
+  <div class="wrap" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <span>service·pulse — by Prasad Bhor</span>
+    <a href="https://github.com/your-username/service-pulse">github repo</a>
+  </div>
+</footer>
+
+<script>
+  // A simplified, in-browser version of the same idea as the Azure checker:
+  // visit each site, see if it responds, note how long it took.
+  // Because this runs in your browser rather than in Azure, strict CORS
+  // rules mean we can't always read the exact status code back — so a
+  // request that clearly fails (timeout, network error, blocked) is marked
+  // down, and everything else is treated as reachable.
+  const targets = [
+    { name: "Example site", url: "https://example.com" },
+    { name: "GitHub API", url: "https://api.github.com" },
+    { name: "HTTPBin", url: "https://httpbin.org/status/200" }
+  ];
+
+  const listEl = document.getElementById("statusList");
+  const lastCheckedEl = document.getElementById("lastChecked");
+  const recheckBtn = document.getElementById("recheck");
+
+  function renderRow(target, state) {
+    // state: { status: 'up' | 'down' | 'pending', latency: number|null }
+    const dotClass = state.status === "pending" ? "" : state.status;
+    const labelText = state.status === "pending" ? "checking" : state.status === "up" ? "reachable" : "unreachable";
+    const latencyText = state.latency != null ? `${state.latency} ms` : "";
+    return `
+      <div class="status-row">
+        <span class="dot ${dotClass}"></span>
+        <span class="status-name">${target.name}<small>${target.url}</small></span>
+        <span class="status-latency">${latencyText}</span>
+        <span class="status-label ${state.status}">${labelText}</span>
+      </div>`;
+  }
+
+  async function checkOne(target) {
+    const started = performance.now();
+    try {
+      // no-cors keeps this simple and dependency-free for a static page;
+      // we can't read the response body/status, only whether it succeeded.
+      await fetch(target.url, { mode: "no-cors", cache: "no-store" });
+      return { status: "up", latency: Math.round(performance.now() - started) };
+    } catch (err) {
+      return { status: "down", latency: Math.round(performance.now() - started) };
+    }
+  }
+
+  async function runChecks() {
+    recheckBtn.disabled = true;
+    listEl.innerHTML = targets.map(t => renderRow(t, { status: "pending", latency: null })).join("");
+    lastCheckedEl.textContent = "checking…";
+
+    const results = await Promise.all(targets.map(checkOne));
+
+    listEl.innerHTML = targets.map((t, i) => renderRow(t, results[i])).join("");
+    lastCheckedEl.textContent = "last checked " + new Date().toLocaleTimeString();
+    recheckBtn.disabled = false;
+  }
+
+  recheckBtn.addEventListener("click", runChecks);
+  runChecks();
+</script>
+
+</body>
+</html>

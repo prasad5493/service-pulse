@@ -1,0 +1,19 @@
+{
+  "endpoints": [
+    {
+      "name": "example-site",
+      "url": "https://example.com",
+      "timeout_seconds": 5
+    },
+    {
+      "name": "httpbin-status",
+      "url": "https://httpbin.org/status/200",
+      "timeout_seconds": 5
+    },
+    {
+      "name": "github-api",
+      "url": "https://api.github.com",
+      "timeout_seconds": 5
+    }
+  ]
+}

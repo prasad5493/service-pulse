@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+tfplan
+
+# Azure Functions local settings (contains secrets)
+local.settings.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
