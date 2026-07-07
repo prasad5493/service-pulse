@@ -51,7 +51,7 @@
   .nav a.repo:hover { border-color: var(--green); color: var(--green); }
 
   /* ---------- hero ---------- */
-  .hero { padding: 72px 0 56px; background: var(--card); }
+  .hero { padding: 72px 0 32px; background: var(--card); }
   .eyebrow {
     font-family: var(--mono); font-size: 13px; color: var(--muted);
     display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
@@ -71,13 +71,25 @@
   .byline {
     font-family: "Bricolage Grotesque", sans-serif;
     font-weight: 700; font-size: 1.4rem; color: var(--green);
-    margin-top: 32px;
+    margin-top: 18px;
   }
   .byline span { color: var(--muted); font-family: var(--mono); font-weight: 400; font-size: 0.95rem; display: block; margin-bottom: 4px; }
-  .divider { height: 1px; background: var(--line); margin: 8px 0 24px; }
+
+  .pulse-strip { border-top: 1px solid var(--line); }
+  .pulse-strip svg { display: block; width: 100%; height: 90px; }
+  .pulse-path {
+    fill: none; stroke: var(--green); stroke-width: 2.5;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 1400; stroke-dashoffset: 1400;
+    animation: draw 4s linear infinite;
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse-path { animation: none; stroke-dashoffset: 0; }
+  }
 
   /* ---------- sections ---------- */
-  section { padding: 64px 0; }
+  section { padding: 88px 0 64px; }
   section + section { border-top: 1px solid var(--line); }
   h2 {
     font-family: "Bricolage Grotesque", sans-serif;
@@ -115,16 +127,27 @@
   #recheck:hover { border-color: var(--green); color: var(--green); }
   #recheck:disabled { opacity: 0.5; cursor: default; }
 
+  /* stack table */
+  .stack { display: grid; gap: 10px; margin-top: 8px; }
+  .stack-row {
+    display: grid; grid-template-columns: 170px 1fr; gap: 16px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 20px; align-items: baseline;
+  }
+  .stack-row .k { font-family: var(--mono); font-size: 13.5px; color: var(--green); font-weight: 500; }
+  .stack-row .v { color: var(--muted); font-size: 0.97rem; }
+
   footer {
-    border-top: 1px solid var(--line); padding: 40px 0 56px;
+    padding: 40px 0 56px;
     font-family: var(--mono); font-size: 13px; color: var(--muted);
     display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   }
 
   @media (max-width: 640px) {
+    .stack-row { grid-template-columns: 1fr; gap: 4px; }
     .status-row { grid-template-columns: 12px 1fr; row-gap: 8px; }
     .status-latency, .status-label { grid-column: 2; }
-    section { padding: 48px 0; }
+    section { padding: 64px 0 48px; }
   }
 </style>
 </head>
@@ -139,11 +162,15 @@
   <div class="wrap hero">
     <p class="eyebrow">built for azure · runs every 5 minutes when deployed</p>
     <h1>A simple tool that watches websites for you.</h1>
-    <p class="lede">Service Pulse checks a list of websites on a schedule, notes whether each one is up, and sends an alert the moment something goes wrong. Fully built and tested — the section below shows the same kind of check running live, right in your browser.</p>
+    <p class="lede">Service Pulse checks a list of websites on a schedule, notes whether each one is up, and sends an alert the moment something goes wrong.</p>
     <p class="byline"><span>Built and maintained by</span>Prasad Bhor</p>
   </div>
+  <div class="pulse-strip" aria-hidden="true">
+    <svg viewBox="0 0 1200 90" preserveAspectRatio="none">
+      <path class="pulse-path" d="M0,45 L140,45 L165,45 L180,18 L198,72 L212,45 L340,45 L365,45 L380,20 L398,70 L412,45 L560,45 L585,45 L600,15 L620,75 L635,45 L800,45 L825,45 L840,22 L858,68 L872,45 L1040,45 L1065,45 L1080,18 L1098,72 L1112,45 L1200,45"/>
+    </svg>
+  </div>
 </header>
-<div class="divider"></div>
 
 <main>
   <section id="what" class="wrap">
@@ -153,9 +180,8 @@
     <p>If a website stops responding properly, an email goes out straight away — so nobody has to sit and watch a screen waiting for something to break. There's also an optional step where a failing check can automatically create a support ticket in Salesforce, so the issue gets tracked without anyone lifting a finger.</p>
   </section>
 
-  <section id="live" class="wrap">
-    <h2>See the check logic run</h2>
-    <p class="section-note">a live demo, running in your browser right now</p>
+  <section id="live" class="wrap" style="margin-top: 24px;">
+    <h2>Live Health Check</h2>
     <div class="status-list" id="statusList">
       <div class="status-row">
         <span class="dot"></span>
@@ -170,6 +196,17 @@
     </div>
   </section>
 
+  <section id="stack" class="wrap" style="margin-top: 24px;">
+    <h2>What's under the hood</h2>
+    <p class="section-note">the concepts this project is built on</p>
+    <div class="stack">
+      <div class="stack-row"><span class="k">Azure</span><span class="v">Hosts the cloud resources — storage, logging, and the alerting rule that watches for failures.</span></div>
+      <div class="stack-row"><span class="k">Terraform</span><span class="v">Describes the entire Azure setup in code, so it's built the same way every time instead of by hand.</span></div>
+      <div class="stack-row"><span class="k">Python</span><span class="v">Does the actual work — visiting each site, timing the response, and deciding pass or fail.</span></div>
+      <div class="stack-row"><span class="k">GitHub Actions</span><span class="v">Tests the code, deploys the infrastructure, and runs the checks themselves on a schedule.</span></div>
+      <div class="stack-row"><span class="k">Application Insights</span><span class="v">Keeps a record of every check, so nothing is lost once the moment passes.</span></div>
+    </div>
+  </section>
 
 </main>
 
