@@ -1,74 +1,49 @@
 # Service Pulse
 
-A small, practical uptime monitor that runs on Azure. Every five minutes it checks a list of web endpoints, records how they respond, and raises an alert (and optionally a Salesforce case) when something looks unhealthy.
+A small uptime monitor. It checks a list of websites on a schedule, records how each one responds, and sends an email if something breaks. It can optionally open a Salesforce case for failures too.
 
-I built this to practise the day-to-day work of a platform team in one small repo: infrastructure as code, a CI/CD pipeline, observability, and a bit of automation glue — without any of it being over-engineered.
+I built this to practise the kind of small, everyday platform work that usually gets talked about but rarely gets built end to end: infrastructure as code, a CI/CD pipeline, and proper alerting, in one repo that doesn't take a week to understand.
 
-**Live docs site:** hosted with GitHub Pages from the `docs/` folder.
-
----
+**Docs site:** hosted with GitHub Pages from the `docs/` folder.
 
 ## What it does
 
-1. A Python function runs in Azure on a timer (every 5 minutes).
-2. It reads a list of endpoints from `app/endpoints.json` and calls each one.
-3. Each result (status code, latency, pass/fail) is logged as structured JSON, which lands in Application Insights automatically.
-4. An Azure Monitor alert fires if checks start failing, and emails the on-call address.
-5. Optionally, a failed check can open a Case in Salesforce so the issue is tracked somewhere people actually look. This is switched off unless you provide Salesforce credentials — the monitor works fine without it.
+- Reads a list of endpoints from `app/endpoints.json`
+- Checks each one — records the status code, response time, and pass/fail
+- Sends the results to Azure Application Insights
+- If two or more checks fail within 10 minutes, an alert email goes out
+- Optionally opens a Salesforce case on failure, if credentials are configured — otherwise this step is just skipped
 
-## Why it's built this way
+## How the checks run
 
-- **Terraform for everything.** All Azure resources live in `terraform/`. The monitoring pieces (Log Analytics, Application Insights, alert rules) sit in their own small module so they can be reused, and to keep the root config short and readable.
-- **GitHub Actions for CI/CD.** Pull requests run linting, unit tests, `terraform validate` and a security scan. Merges to `main` deploy the infrastructure and the function code. The pipeline logs into Azure with OIDC (federated credentials), so there are no long-lived cloud secrets stored in GitHub.
-- **Observability from day one.** Logs are structured, latency is recorded per check, and there's an alert rule rather than "someone will notice eventually".
-- **Small and honest.** No Kubernetes, no queues, no framework. A timer, some HTTP calls, and good habits around them.
+There are two ways to run the checks, controlled by one flag:
 
-## Architecture
+- **GitHub Actions schedule** (default) — a workflow runs every 15 minutes, checks each endpoint, and sends the results to Application Insights.
+- **Azure Function** — set `enable_function_app = true` in `terraform/variables.tf` to have Terraform provision a Function App instead, which runs the same checks on its own 5-minute timer inside Azure.
 
-```
-GitHub Actions ──(OIDC)──> Azure
-     │
-     ├── terraform apply ──> Resource Group
-     │                        ├── Storage Account (function state)
-     │                        ├── App Service Plan (consumption)
-     │                        ├── Function App (Python)
-     │                        └── monitoring module
-     │                             ├── Log Analytics Workspace
-     │                             ├── Application Insights
-     │                             ├── Action Group (email)
-     │                             └── Alert rule (failed checks)
-     │
-     └── deploy function code ──> Function App
-                                     │ every 5 min
-                                     ▼
-                              checks endpoints ──> logs to App Insights
-                                     │
-                                     └─ on failure ──> Salesforce Case (optional)
-```
+Both paths use the same checking logic in `app/checks.py` and report to the same Application Insights instance, so the alerting and dashboards work identically either way.
 
 ## Project layout
 
 ```
-app/          Python function code and endpoint config
+app/          The checking logic, endpoint config, and the two ways it can run
 tests/        Unit tests (pytest)
-terraform/    Infrastructure as code, with a reusable monitoring module
-scripts/      One-off helper scripts (bootstrap the Terraform state storage)
+terraform/    Infrastructure as code, with a small reusable monitoring module
+scripts/      One-off setup script for the Terraform state storage
 docs/         The GitHub Pages site
-.github/      CI and deploy workflows
+.github/      CI, deploy, and the scheduled monitor workflow
 Dockerfile    Run the checks locally in a container
 ```
 
 ## Running it locally
 
-You don't need Azure to try the checks:
-
 ```bash
 cd app
 pip install -r requirements.txt
-python -m checks              # runs the checks once and prints the results
+python -m checks
 ```
 
-Or in a container, so the environment is the same everywhere:
+Or in a container:
 
 ```bash
 docker build -t service-pulse .
@@ -82,37 +57,26 @@ pip install -r app/requirements.txt pytest ruff
 pytest
 ```
 
-## Deploying to Azure
+## Deploying
 
-One-time setup:
-
-1. Create the storage account that holds Terraform state:
-
+1. Create the Terraform state storage (one-time setup):
    ```bash
-   ./scripts/bootstrap.sh <subscription-id> uksouth
+   ./scripts/bootstrap.sh <subscription-id> eastus
    ```
-
-2. Create an Entra ID app registration with federated credentials for this repo, and give it Contributor on the subscription (or a tighter scope if you prefer). Add these repository secrets in GitHub:
-
-   - `AZURE_CLIENT_ID`
-   - `AZURE_TENANT_ID`
-   - `AZURE_SUBSCRIPTION_ID`
-   - `ALERT_EMAIL` — where alert emails should go
-
-3. (Optional) For the Salesforce integration, also add:
-
-   - `SF_USERNAME`, `SF_PASSWORD`, `SF_TOKEN`
-
-   If these are missing the function simply skips the Salesforce step.
-
-After that, every merge to `main` runs `terraform apply` and deploys the function.
+2. Set up an Azure app registration with federated credentials for this repo, and add these as GitHub repository secrets:
+   - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+   - `ALERT_EMAIL` — where failure alerts should go
+   - `APPINSIGHTS_CONNECTION_STRING` — from the Application Insights resource, once created, so the GitHub Actions monitor can send it results
+   - Optional: `SF_USERNAME`, `SF_PASSWORD`, `SF_TOKEN` for the Salesforce integration
+3. Go to the **Actions** tab and run the **Deploy** workflow manually. Nothing deploys automatically on push — that's deliberate, so changes to real cloud infrastructure only happen when someone means for them to.
+4. Run the **Scheduled monitor** workflow once to kick things off. After that it repeats on its own every 15 minutes.
 
 ## Changing what gets monitored
 
-Edit `app/endpoints.json`. Each entry is a name, a URL, and a timeout. That's it — commit the change and the pipeline ships it.
+Edit `app/endpoints.json` — a name, a URL, and a timeout per entry. Commit it, and the next scheduled run picks it up.
 
-## Things I'd add next
+## What I'd add next
 
-- Debounce Salesforce cases (only open one after N consecutive failures) using a small blob for state.
-- Publish a proper SLO: e.g. "99% of checks complete in under 2 seconds", measured from the latency we already record.
-- A GitOps-style promotion flow with a separate staging environment.
+- Only open one Salesforce case per outage, instead of one per failed check
+- A proper SLO — e.g. 99% of checks under 2 seconds — measured from the latency already being recorded
+- A staging environment with its own GitOps-style promotion flow

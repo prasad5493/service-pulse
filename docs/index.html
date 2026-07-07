@@ -74,7 +74,7 @@
     margin-top: 32px;
   }
   .byline span { color: var(--muted); font-family: var(--mono); font-weight: 400; font-size: 0.95rem; display: block; margin-bottom: 4px; }
-  .divider { height: 1px; background: var(--line); }
+  .divider { height: 1px; background: var(--line); margin: 8px 0 24px; }
 
   /* ---------- sections ---------- */
   section { padding: 64px 0; }
@@ -105,7 +105,7 @@
   .status-label.up { background: var(--green-soft); color: var(--green); }
   .status-label.down { background: #fbe4e4; color: var(--red); }
   .status-label.pending { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
-  .status-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; flex-wrap: wrap; gap: 10px; }
+  .status-footer { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 24px; flex-wrap: wrap; gap: 10px; }
   .status-footer .note { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
   #recheck {
     font-family: var(--mono); font-size: 13px; cursor: pointer;
@@ -137,9 +137,9 @@
     <a class="repo" href="https://github.com/your-username/service-pulse">view source →</a>
   </div>
   <div class="wrap hero">
-    <p class="eyebrow">checks every 5 minutes · built on azure</p>
+    <p class="eyebrow">built for azure · runs every 5 minutes when deployed</p>
     <h1>A simple tool that watches websites for you.</h1>
-    <p class="lede">Service Pulse checks a list of websites on a schedule, notes whether each one is up, and sends an alert the moment something goes wrong.</p>
+    <p class="lede">Service Pulse checks a list of websites on a schedule, notes whether each one is up, and sends an alert the moment something goes wrong. Fully built and tested — the section below shows the same kind of check running live, right in your browser.</p>
     <p class="byline"><span>Built and maintained by</span>Prasad Bhor</p>
   </div>
 </header>
@@ -149,13 +149,13 @@
   <section id="what" class="wrap">
     <h2>What it does</h2>
     <p class="section-note">in plain terms</p>
-    <p>Every five minutes, a small program visits each website on a list and asks a simple question: are you working? It notes whether the site responded properly and how long it took.</p>
+    <p>The idea: every five minutes, a small program visits each website on a list and asks a simple question — are you working? It notes whether the site responded properly and how long it took.</p>
     <p>If a website stops responding properly, an email goes out straight away — so nobody has to sit and watch a screen waiting for something to break. There's also an optional step where a failing check can automatically create a support ticket in Salesforce, so the issue gets tracked without anyone lifting a finger.</p>
   </section>
 
   <section id="live" class="wrap">
-    <h2>Live status</h2>
-    <p class="section-note">checked from your browser, right now</p>
+    <h2>See the check logic run</h2>
+    <p class="section-note">a live demo, running in your browser right now</p>
     <div class="status-list" id="statusList">
       <div class="status-row">
         <span class="dot"></span>

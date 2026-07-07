@@ -1,0 +1,42 @@
+# Runs the health checks on a schedule from GitHub Actions itself, and
+# reports each result to Application Insights the same way the Azure
+# Function normally would.
+#
+# This exists specifically for while enable_function_app is false in
+# Terraform (see terraform/variables.tf) — i.e. while waiting on Azure to
+# approve App Service quota for this subscription. Once that's approved and
+# the Function App is deployed, this workflow can be disabled; the Function
+# App's own 5-minute timer takes over the same job.
+name: Scheduled monitor (GitHub Actions runner)
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # every 15 minutes — GitHub's practical minimum for reliable timing
+  workflow_dispatch: # lets you trigger a check manually from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Run health checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r app/requirements.txt
+
+      - name: Run checks and report to Application Insights
+        working-directory: app
+        env:
+          APPINSIGHTS_CONNECTION_STRING: ${{ secrets.APPINSIGHTS_CONNECTION_STRING }}
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
+          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SF_TOKEN: ${{ secrets.SF_TOKEN }}
+        run: python send_to_appinsights.py

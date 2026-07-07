@@ -1,11 +1,11 @@
-# Deploys on every push to main, after CI has done its checks.
-# Logs into Azure with OIDC (federated credentials) — no cloud passwords
-# or long-lived keys are stored in GitHub.
+# Deploys only when manually triggered from the Actions tab.
+# This is intentionally NOT set to run on every push — the infrastructure
+# code lives in this repo as a working reference, but nothing gets applied
+# to a real Azure subscription unless someone deliberately runs it.
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -39,6 +39,7 @@ jobs:
         run: terraform -chdir=terraform plan -out=tfplan
         env:
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+          TF_VAR_enable_function_app: ${{ vars.ENABLE_FUNCTION_APP || 'false' }}
 
       - name: Apply
         run: terraform -chdir=terraform apply -auto-approve tfplan
@@ -50,6 +51,7 @@ jobs:
   function:
     name: Deploy function code
     needs: infrastructure
+    if: vars.ENABLE_FUNCTION_APP == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
