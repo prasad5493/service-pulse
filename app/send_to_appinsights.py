@@ -10,7 +10,6 @@ ingestion endpoint. No SDK, no extra dependency beyond `requests`.
 import json
 import os
 import time
-import uuid
 from datetime import datetime, timezone
 
 import requests

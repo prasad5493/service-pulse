@@ -32,29 +32,7 @@ terraform/    Infrastructure as code, with a small reusable monitoring module
 scripts/      One-off setup script for the Terraform state storage
 docs/         The GitHub Pages site
 .github/      CI, deploy, and the scheduled monitor workflow
-Dockerfile    Run the checks locally in a container
-```
-
-## Running it locally
-
-```bash
-cd app
-pip install -r requirements.txt
-python -m checks
-```
-
-Or in a container:
-
-```bash
-docker build -t service-pulse .
-docker run --rm service-pulse
-```
-
-Run the tests:
-
-```bash
-pip install -r app/requirements.txt pytest ruff
-pytest
+Dockerfile    Runs the checks in a container
 ```
 
 ## Deploying
@@ -74,9 +52,3 @@ pytest
 ## Changing what gets monitored
 
 Edit `app/endpoints.json` — a name, a URL, and a timeout per entry. Commit it, and the next scheduled run picks it up.
-
-## What I'd add next
-
-- Only open one Salesforce case per outage, instead of one per failed check
-- A proper SLO — e.g. 99% of checks under 2 seconds — measured from the latency already being recorded
-- A staging environment with its own GitOps-style promotion flow

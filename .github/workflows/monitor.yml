@@ -1,12 +1,11 @@
 # Runs the health checks on a schedule from GitHub Actions itself, and
 # reports each result to Application Insights the same way the Azure
-# Function normally would.
+# Function would.
 #
-# This exists specifically for while enable_function_app is false in
-# Terraform (see terraform/variables.tf) — i.e. while waiting on Azure to
-# approve App Service quota for this subscription. Once that's approved and
-# the Function App is deployed, this workflow can be disabled; the Function
-# App's own 5-minute timer takes over the same job.
+# This is the default way the checks run (see enable_function_app in
+# terraform/variables.tf). Flip that flag on to have an Azure Function run
+# the same checks on its own timer instead — either way, the results land
+# in the same place.
 name: Scheduled monitor (GitHub Actions runner)
 
 on:

@@ -23,7 +23,7 @@ variable "alert_email" {
 }
 
 variable "enable_function_app" {
-  description = "Create the Azure Function App and its Service Plan. Leave false until Azure has approved App Service quota for this subscription/region; the checks run via a GitHub Actions schedule in the meantime."
+  description = "Create the Azure Function App and its Service Plan. Off by default — the checks run via a GitHub Actions schedule instead. Flip to true to have the same checks run inside Azure on a timer."
   type        = bool
   default     = false
 }

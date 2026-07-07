@@ -1,5 +1,5 @@
 output "function_app_name" {
-  description = "Name of the Function App, used by the deploy workflow. Empty when enable_function_app is false."
+  description = "Name of the Function App. Empty unless enable_function_app is true."
   value       = var.enable_function_app ? azurerm_linux_function_app.main[0].name : ""
 }
 
@@ -13,7 +13,7 @@ output "app_insights_name" {
 }
 
 output "app_insights_connection_string" {
-  description = "Used by the GitHub Actions monitor workflow to send check results directly, when the Function App is disabled."
+  description = "Used by the GitHub Actions monitor workflow to send check results directly."
   value       = module.monitoring.app_insights_connection_string
   sensitive   = true
 }

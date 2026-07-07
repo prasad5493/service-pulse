@@ -27,12 +27,10 @@ resource "azurerm_storage_account" "func" {
 # Consumption plan: we only pay while the checks are actually running,
 # which for a 5-minute timer is close to nothing.
 #
-# Gated behind var.enable_function_app: a brand-new Azure subscription needs
-# a one-time App Service quota approval from Microsoft before this plan can
-# be created (a support ticket, not something Terraform can request). Until
-# that's approved, this stays off and the checks run on a GitHub Actions
-# schedule instead (see .github/workflows/monitor.yml) — same observability,
-# same alerting, no blocked resource. Flip the flag once quota is approved.
+# Gated behind var.enable_function_app so the Function App is opt-in rather
+# than always-on. By default the checks run on the GitHub Actions schedule
+# instead (see .github/workflows/monitor.yml) — same checking logic, same
+# alerting in Application Insights, just a different place for it to run.
 resource "azurerm_service_plan" "main" {
   count = var.enable_function_app ? 1 : 0
 
